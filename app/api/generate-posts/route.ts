@@ -150,7 +150,7 @@ export async function POST(request: Request) {
     const errorText = await response.text()
 
     return NextResponse.json(
-      { error: `OpenAI 호출 실패: ${error.status} ${errorText}` },
+      { error: `OpenAI 호출 실패: ${response.status} ${errorText}` },
       { status: 500 },
     )
   }
