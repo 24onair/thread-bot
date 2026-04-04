@@ -16,11 +16,25 @@ type ScheduleRecord = {
     body: string
     closing_line: string | null
     hashtags: string | null
+  }[] | null
+}
+
+type NormalizedScheduleRecord = {
+  id: string
+  scheduled_at: string
+  status: string
+  updated_at: string
+  post: {
+    id: string
+    hook: string
+    body: string
+    closing_line: string | null
+    hashtags: string | null
   } | null
 }
 
 export default function SchedulesPage() {
-  const [schedules, setSchedules] = useState<ScheduleRecord[]>([])
+  const [schedules, setSchedules] = useState<NormalizedScheduleRecord[]>([])
   const [selectedScheduleId, setSelectedScheduleId] = useState('')
   const [message, setMessage] = useState('예약 목록을 불러오는 중...')
 
@@ -37,7 +51,11 @@ export default function SchedulesPage() {
       return
     }
 
-    const scheduleList = (data as ScheduleRecord[]) ?? []
+    const scheduleList = ((data as ScheduleRecord[]) ?? []).map((schedule) => ({
+      ...schedule,
+      post: schedule.post?.[0] ?? null,
+    }))
+
     setSchedules(scheduleList)
     setSelectedScheduleId((current) => current || scheduleList[0]?.id || '')
     setMessage(
