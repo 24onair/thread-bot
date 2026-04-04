@@ -7,20 +7,15 @@ import { supabase } from '@/lib/supabase'
 
 type ScheduleRecord = {
   id: string
+  post_id: string
   scheduled_at: string
   status: string
   updated_at: string
-  post: {
-    id: string
-    hook: string
-    body: string
-    closing_line: string | null
-    hashtags: string | null
-  }[] | null
 }
 
 type NormalizedScheduleRecord = {
   id: string
+  post_id: string
   scheduled_at: string
   status: string
   updated_at: string
@@ -41,9 +36,7 @@ export default function SchedulesPage() {
   const fetchSchedules = async () => {
     const { data, error } = await supabase
       .from('schedules')
-      .select(
-        'id, scheduled_at, status, updated_at, post:posts(id, hook, body, closing_line, hashtags)',
-      )
+      .select('id, post_id, scheduled_at, status, updated_at')
       .order('scheduled_at', { ascending: true })
 
     if (error) {
@@ -51,9 +44,55 @@ export default function SchedulesPage() {
       return
     }
 
-    const scheduleList = ((data as ScheduleRecord[]) ?? []).map((schedule) => ({
-      ...schedule,
-      post: schedule.post?.[0] ?? null,
+    const rawSchedules = (data as ScheduleRecord[]) ?? []
+
+    const postIds = Array.from(
+      new Set(rawSchedules.map((schedule) => schedule.post_id).filter(Boolean)),
+    )
+
+    let postMap = new Map<
+      string,
+      {
+        id: string
+        hook: string
+        body: string
+        closing_line: string | null
+        hashtags: string | null
+      }
+    >()
+
+    if (postIds.length > 0) {
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .select('id, hook, body, closing_line, hashtags')
+        .in('id', postIds)
+
+      if (postError) {
+        setMessage(`연결된 글 불러오기 실패: ${postError.message}`)
+        return
+      }
+
+      postMap = new Map(
+        (postData ?? []).map((post) => [
+          post.id,
+          {
+            id: post.id,
+            hook: post.hook,
+            body: post.body,
+            closing_line: post.closing_line,
+            hashtags: post.hashtags,
+          },
+        ]),
+      )
+    }
+
+    const scheduleList: NormalizedScheduleRecord[] = rawSchedules.map((schedule) => ({
+      id: schedule.id,
+      post_id: schedule.post_id,
+      scheduled_at: schedule.scheduled_at,
+      status: schedule.status,
+      updated_at: schedule.updated_at,
+      post: postMap.get(schedule.post_id) ?? null,
     }))
 
     setSchedules(scheduleList)
