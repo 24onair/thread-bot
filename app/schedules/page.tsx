@@ -171,6 +171,26 @@ export default function SchedulesPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#ffffff_40%,_#fff7ed)] px-6 py-10 text-slate-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <nav className="sticky top-4 z-10 flex items-center justify-between rounded-full border border-slate-200 bg-white/90 px-5 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur">
+          <Link href="/" className="text-sm font-semibold text-slate-950">
+            Threads Writer
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+            >
+              홈
+            </Link>
+            <Link
+              href="/schedules"
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              예약 목록 보기
+            </Link>
+          </div>
+        </nav>
+
         <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
