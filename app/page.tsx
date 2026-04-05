@@ -56,6 +56,8 @@ export default function Home() {
   const [scheduleTime, setScheduleTime] = useState('')
   const [scheduleMessage, setScheduleMessage] = useState('')
   const [isSavingSchedule, setIsSavingSchedule] = useState(false)
+  const [copiedPostId, setCopiedPostId] = useState('')
+  const [scheduledPostId, setScheduledPostId] = useState('')
 
   useEffect(() => {
     let isCancelled = false
@@ -374,7 +376,11 @@ export default function Home() {
 
     try {
       await navigator.clipboard.writeText(textToCopy)
+      setCopiedPostId(post.id)
       setPostMessage('선택한 글 초안을 클립보드에 복사했습니다.')
+      window.setTimeout(() => {
+        setCopiedPostId((current) => (current === post.id ? '' : current))
+      }, 1500)
     } catch {
       setPostMessage('복사에 실패했습니다. 브라우저 권한을 확인해 주세요.')
     }
@@ -411,8 +417,12 @@ export default function Home() {
 
     setScheduleMessage('예약이 저장되었습니다.')
     setIsSavingSchedule(false)
+    setScheduledPostId(selectedPostId)
     setScheduleDate('')
     setScheduleTime('')
+    window.setTimeout(() => {
+      setScheduledPostId((current) => (current === selectedPostId ? '' : current))
+    }, 1800)
   }
 
   return (
@@ -781,14 +791,18 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => handleCopyPost(post)}
-                      className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100"
+                      className={`mt-4 inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold ring-1 transition active:scale-[0.98] ${
+                        copiedPostId === post.id
+                          ? 'bg-emerald-600 text-white ring-emerald-600'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-100'
+                      }`}
                     >
-                      복사하기
+                      {copiedPostId === post.id ? '복사 완료' : '복사하기'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setSelectedPostId(post.id)}
-                      className={`mt-4 ml-3 inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition ${
+                      className={`mt-4 ml-3 inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition active:scale-[0.98] ${
                         selectedPostId === post.id
                           ? 'bg-slate-950 text-white'
                           : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
@@ -849,9 +863,17 @@ export default function Home() {
                   type="button"
                   onClick={handleSaveSchedule}
                   disabled={isSavingSchedule || !selectedPostId}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-orange-500 px-6 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-200"
+                  className={`inline-flex min-h-12 items-center justify-center rounded-full px-6 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed ${
+                    scheduledPostId && selectedPostId === scheduledPostId
+                      ? 'bg-emerald-600 hover:bg-emerald-500'
+                      : 'bg-orange-500 hover:bg-orange-400 disabled:bg-orange-200'
+                  }`}
                 >
-                  {isSavingSchedule ? '예약 저장 중...' : '예약 저장하기'}
+                  {isSavingSchedule
+                    ? '예약 저장 중...'
+                    : scheduledPostId && selectedPostId === scheduledPostId
+                      ? '예약 완료'
+                      : '예약 저장하기'}
                 </button>
                 <Link
                   href="/schedules"

@@ -32,6 +32,8 @@ export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<NormalizedScheduleRecord[]>([])
   const [selectedScheduleId, setSelectedScheduleId] = useState('')
   const [message, setMessage] = useState('예약 목록을 불러오는 중...')
+  const [copiedScheduleId, setCopiedScheduleId] = useState('')
+  const [postedFeedbackId, setPostedFeedbackId] = useState('')
 
   const fetchSchedules = async () => {
     const { data, error } = await supabase
@@ -138,6 +140,14 @@ export default function SchedulesPage() {
 
     try {
       await navigator.clipboard.writeText(textToCopy)
+      if (selectedSchedule) {
+        setCopiedScheduleId(selectedSchedule.id)
+        window.setTimeout(() => {
+          setCopiedScheduleId((current) =>
+            current === selectedSchedule.id ? '' : current,
+          )
+        }, 1500)
+      }
       setMessage('예약 포스트를 클립보드에 복사했습니다.')
     } catch {
       setMessage('복사에 실패했습니다. 브라우저 권한을 확인해 주세요.')
@@ -164,8 +174,14 @@ export default function SchedulesPage() {
     }
 
     setMessage('상태를 posted로 변경했습니다. 변경 시각이 포스팅 시간으로 기록되었습니다.')
+    setPostedFeedbackId(selectedSchedule.id)
     await fetchSchedules()
     setSelectedScheduleId(selectedSchedule.id)
+    window.setTimeout(() => {
+      setPostedFeedbackId((current) =>
+        current === selectedSchedule.id ? '' : current,
+      )
+    }, 1800)
   }
 
   return (
@@ -311,9 +327,15 @@ export default function SchedulesPage() {
                   <button
                     type="button"
                     onClick={handleCopyPost}
-                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    className={`inline-flex min-h-12 items-center justify-center rounded-full px-6 text-sm font-semibold text-white transition active:scale-[0.98] ${
+                      copiedScheduleId === selectedSchedule.id
+                        ? 'bg-emerald-600 hover:bg-emerald-500'
+                        : 'bg-slate-950 hover:bg-slate-800'
+                    }`}
                   >
-                    전체 내용 복사하기
+                    {copiedScheduleId === selectedSchedule.id
+                      ? '복사 완료'
+                      : '전체 내용 복사하기'}
                   </button>
                   <button
                     type="button"
@@ -322,10 +344,16 @@ export default function SchedulesPage() {
                     className={`inline-flex min-h-12 items-center justify-center rounded-full px-6 text-sm font-semibold transition ${
                       isPosted
                         ? 'cursor-not-allowed bg-emerald-200 text-emerald-900'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                        : postedFeedbackId === selectedSchedule.id
+                          ? 'bg-emerald-700 text-white'
+                          : 'bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.98]'
                     }`}
                   >
-                    {isPosted ? '포스팅 완료됨' : '포스팅 완료 처리'}
+                    {isPosted
+                      ? '포스팅 완료됨'
+                      : postedFeedbackId === selectedSchedule.id
+                        ? '처리 완료'
+                        : '포스팅 완료 처리'}
                   </button>
                   <p className="text-sm text-slate-600">
                     예약 시간: {new Date(selectedSchedule.scheduled_at).toLocaleString('ko-KR')}
