@@ -399,15 +399,34 @@ export default function Home() {
       return
     }
 
-    if (!scheduleDate || !scheduleTime) {
-      setScheduleMessage('예약 날짜와 시간을 모두 입력해 주세요.')
-      return
-    }
-
     setIsSavingSchedule(true)
     setScheduleMessage('예약 저장 중...')
 
-    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}:00+09:00`).toISOString()
+    const now = new Date()
+    const fallbackDate = now.toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Seoul',
+    })
+    const fallbackTime = now.toLocaleTimeString('en-GB', {
+      timeZone: 'Asia/Seoul',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+
+    const finalScheduleDate = scheduleDate || fallbackDate
+    const finalScheduleTime = scheduleTime || fallbackTime
+
+    if (!scheduleDate) {
+      setScheduleDate(finalScheduleDate)
+    }
+
+    if (!scheduleTime) {
+      setScheduleTime(finalScheduleTime)
+    }
+
+    const scheduledAt = new Date(
+      `${finalScheduleDate}T${finalScheduleTime}:00+09:00`,
+    ).toISOString()
 
     const { error } = await supabase.from('schedules').insert({
       post_id: selectedPostId,
