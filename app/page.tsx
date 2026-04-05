@@ -47,6 +47,7 @@ export default function Home() {
   const [accountLoadMessage, setAccountLoadMessage] = useState('계정 목록을 불러오는 중...')
   const [topicMessage, setTopicMessage] = useState('')
   const [isGeneratingTopics, setIsGeneratingTopics] = useState(false)
+  const [topicKeyword, setTopicKeyword] = useState('')
   const [selectedTopicId, setSelectedTopicId] = useState('')
   const [posts, setPosts] = useState<Post[]>([])
   const [postMessage, setPostMessage] = useState('')
@@ -234,6 +235,11 @@ export default function Home() {
     setIsGeneratingTopics(true)
     setTopicMessage('OpenAI로 새로운 주제 3개를 만드는 중...')
 
+    const priorityKeywords = topicKeyword
+      .split(',')
+      .map((keyword) => keyword.trim())
+      .filter(Boolean)
+
     const generateResponse = await fetch('/api/generate-topics', {
       method: 'POST',
       headers: {
@@ -242,6 +248,7 @@ export default function Home() {
       body: JSON.stringify({
         account: selectedAccount,
         existingTitles: topics.map((topic) => topic.title),
+        priorityKeywords,
       }),
     })
 
@@ -613,6 +620,19 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                추가 키워드
+                <input
+                  value={topicKeyword}
+                  onChange={(event) => setTopicKeyword(event.target.value)}
+                  placeholder="예: 쿠팡, 상세페이지, 자동 DM, 구매전환"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
+                />
+                <span className="text-xs leading-5 text-slate-500">
+                  콤마로 여러 개 입력할 수 있고, 앞에 쓴 키워드일수록 더 중요하게 반영합니다.
+                </span>
               </label>
 
               <p className="text-sm text-slate-600">{accountLoadMessage}</p>

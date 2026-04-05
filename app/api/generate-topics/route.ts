@@ -11,6 +11,7 @@ type GenerateTopicsRequest = {
     cta_style: string | null
   }
   existingTitles: string[]
+  priorityKeywords?: string[]
 }
 
 type GeneratedTopic = {
@@ -61,11 +62,22 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as GenerateTopicsRequest
-  const { account, existingTitles } = body
+  const { account, existingTitles, priorityKeywords } = body
 
   if (!account) {
     return NextResponse.json({ error: '계정 정보가 필요합니다.' }, { status: 400 })
   }
+
+  const normalizedKeywords = (priorityKeywords ?? [])
+    .map((keyword) => keyword.trim())
+    .filter(Boolean)
+
+  const weightedKeywordGuide =
+    normalizedKeywords.length > 0
+      ? normalizedKeywords
+          .map((keyword, index) => `${index + 1}순위: ${keyword}`)
+          .join(' | ')
+      : '없음'
 
   const prompt = [
     '너는 한국어 Threads 콘텐츠 전략가다.',
@@ -78,6 +90,7 @@ export async function POST(request: Request) {
     `[타깃 고객] ${account.target_customer || '정보 없음'}`,
     `[톤] ${account.tone || '친근함'}`,
     `[CTA 스타일] ${account.cta_style || '댓글 유도'}`,
+    `[우선 반영 키워드와 가중치] ${weightedKeywordGuide}`,
     '',
     `[이미 만든 주제 목록] ${
       existingTitles.length > 0 ? existingTitles.join(' | ') : '없음'
@@ -90,8 +103,11 @@ export async function POST(request: Request) {
     '4. description은 어떤 내용으로 풀면 되는지 짧게 설명한다.',
     '5. reason은 왜 이 주제가 타깃 고객의 관심을 끄는지 설명한다.',
     '6. 기존 주제와 중복되거나 매우 유사한 표현은 금지한다.',
-    '7. 추상적인 자기계발식 문장보다 업종과 고객 상황이 드러나는 주제를 우선한다.',
-    '8. 결과는 반드시 JSON만 출력한다.',
+    '7. priorityKeywords가 있으면 앞에 입력된 키워드일수록 더 중요한 것으로 보고 우선 반영한다.',
+    '8. 가능한 경우 1순위 키워드를 가장 먼저 살리고, 그다음 2순위와 3순위를 자연스럽게 섞는다.',
+    '9. 단, 키워드를 억지로 끼워 넣지 말고 카테고리와 타깃 고객 맥락에 자연스럽게 녹인다.',
+    '10. 추상적인 자기계발식 문장보다 업종과 고객 상황이 드러나는 주제를 우선한다.',
+    '11. 결과는 반드시 JSON만 출력한다.',
   ].join('\n')
 
   const response = await fetch('https://api.openai.com/v1/responses', {
