@@ -46,7 +46,9 @@ export default function SchedulesPage() {
       return
     }
 
-    const rawSchedules = (data as ScheduleRecord[]) ?? []
+    const rawSchedules = ((data as ScheduleRecord[]) ?? []).filter(
+      (schedule) => schedule.status !== 'posted',
+    )
 
     const postIds = Array.from(
       new Set(rawSchedules.map((schedule) => schedule.post_id).filter(Boolean)),
@@ -176,7 +178,6 @@ export default function SchedulesPage() {
     setMessage('상태를 posted로 변경했습니다. 변경 시각이 포스팅 시간으로 기록되었습니다.')
     setPostedFeedbackId(selectedSchedule.id)
     await fetchSchedules()
-    setSelectedScheduleId(selectedSchedule.id)
     window.setTimeout(() => {
       setPostedFeedbackId((current) =>
         current === selectedSchedule.id ? '' : current,
