@@ -32,6 +32,8 @@ type Post = {
   created_at: string
 }
 
+const POST_FOOTER = '사진은 공개 가능한 사진들이에요'
+
 export default function Home() {
   const [accountName, setAccountName] = useState('')
   const [brandDescription, setBrandDescription] = useState('')
@@ -377,7 +379,16 @@ export default function Home() {
   }
 
   const handleCopyPost = async (post: Post) => {
-    const textToCopy = [post.hook, '', post.body, '', post.closing_line || '', '', post.hashtags || '']
+    const textToCopy = [
+      post.hook,
+      '',
+      post.body,
+      '',
+      post.closing_line || '',
+      '',
+      post.hashtags || '',
+      POST_FOOTER,
+    ]
       .filter(Boolean)
       .join('\n')
 
@@ -833,6 +844,7 @@ export default function Home() {
                     <p className="mt-3 text-sm text-orange-700">
                       {post.hashtags}
                     </p>
+                    <p className="mt-3 text-sm text-slate-500">{POST_FOOTER}</p>
                     <button
                       type="button"
                       onClick={() => handleCopyPost(post)}

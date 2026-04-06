@@ -28,6 +28,8 @@ type NormalizedScheduleRecord = {
   } | null
 }
 
+const POST_FOOTER = '사진은 공개 가능한 사진들이에요'
+
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<NormalizedScheduleRecord[]>([])
   const [selectedScheduleId, setSelectedScheduleId] = useState('')
@@ -136,7 +138,16 @@ export default function SchedulesPage() {
       return
     }
 
-    const textToCopy = [post.hook, '', post.body, '', post.closing_line || '', '', post.hashtags || '']
+    const textToCopy = [
+      post.hook,
+      '',
+      post.body,
+      '',
+      post.closing_line || '',
+      '',
+      post.hashtags || '',
+      POST_FOOTER,
+    ]
       .filter(Boolean)
       .join('\n')
 
@@ -329,6 +340,7 @@ export default function SchedulesPage() {
                 <p className="mt-2 text-sm leading-7 text-slate-700">
                   {selectedSchedule.post.hashtags || '없음'}
                 </p>
+                <p className="mt-3 text-sm leading-7 text-slate-500">{POST_FOOTER}</p>
 
                 <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
                   <button
