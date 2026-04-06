@@ -205,6 +205,12 @@ export default function SchedulesPage() {
             >
               예약 목록 보기
             </Link>
+            <Link
+              href="/posted"
+              className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+            >
+              포스팅 완료 보기
+            </Link>
           </div>
         </nav>
 
