@@ -45,6 +45,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState('')
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [topics, setTopics] = useState<Topic[]>([])
   const [accountLoadMessage, setAccountLoadMessage] = useState('계정 목록을 불러오는 중...')
   const [topicMessage, setTopicMessage] = useState('')
@@ -292,6 +293,69 @@ export default function Home() {
     const topicList = data ?? []
     setTopics(topicList)
     setSelectedTopicId((current) => current || topicList[0]?.id || '')
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!selectedAccountId) {
+      setAccountLoadMessage('삭제할 계정을 먼저 선택해 주세요.')
+      return
+    }
+
+    const selectedAccount = accounts.find((account) => account.id === selectedAccountId)
+
+    if (!selectedAccount) {
+      setAccountLoadMessage('선택한 계정을 찾지 못했습니다.')
+      return
+    }
+
+    const isConfirmed = window.confirm(
+      `"${selectedAccount.account_name}" 계정을 삭제할까요?\n연결된 주제, 글, 예약도 함께 삭제될 수 있습니다.`,
+    )
+
+    if (!isConfirmed) {
+      return
+    }
+
+    setIsDeletingAccount(true)
+    setAccountLoadMessage('계정을 삭제하는 중...')
+
+    const { error } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', selectedAccountId)
+
+    if (error) {
+      setAccountLoadMessage(`계정 삭제 실패: ${error.message}`)
+      setIsDeletingAccount(false)
+      return
+    }
+
+    const { data } = await supabase
+      .from('accounts')
+      .select(
+        'id, account_name, brand_description, category, target_customer, tone, cta_style',
+      )
+      .order('created_at', { ascending: false })
+
+    const accountList = data ?? []
+    setAccounts(accountList)
+    setSelectedAccountId(accountList[0]?.id || '')
+    setTopicKeyword('')
+
+    if (accountList.length === 0) {
+      setTopics([])
+      setSelectedTopicId('')
+      setPosts([])
+      setSelectedPostId('')
+      setAccountLoadMessage('계정이 삭제되었습니다. 남은 계정이 없습니다.')
+      setTopicMessage('')
+      setPostMessage('')
+      setScheduleMessage('')
+    } else {
+      setAccountLoadMessage('계정이 삭제되었습니다.')
+    }
+
+    setIsDeletingAccount(false)
   }
 
   const handleGeneratePosts = async () => {
@@ -657,6 +721,20 @@ export default function Home() {
                   ))}
                 </select>
               </label>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeletingAccount || !selectedAccountId}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition hover:bg-red-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-red-200"
+                >
+                  {isDeletingAccount ? '계정 삭제 중...' : '선택한 계정 삭제'}
+                </button>
+                <p className="text-xs leading-5 text-slate-500">
+                  계정을 삭제하면 연결된 데이터도 함께 사라질 수 있습니다.
+                </p>
+              </div>
 
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 추가 키워드
