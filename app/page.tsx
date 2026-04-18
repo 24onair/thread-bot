@@ -52,6 +52,7 @@ export default function Home() {
   const [isGeneratingTopics, setIsGeneratingTopics] = useState(false)
   const [topicKeyword, setTopicKeyword] = useState('')
   const [selectedTopicId, setSelectedTopicId] = useState('')
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
   const [postMessage, setPostMessage] = useState('')
   const [isGeneratingPosts, setIsGeneratingPosts] = useState(false)
@@ -88,6 +89,7 @@ export default function Home() {
         setSelectedAccountId('')
         setTopics([])
         setSelectedTopicId('')
+        setSelectedTopic(null)
         setPosts([])
         setSelectedPostId('')
         setAccountLoadMessage('저장된 계정이 아직 없습니다. 먼저 계정을 저장해 주세요.')
@@ -315,6 +317,7 @@ export default function Home() {
     }
 
     setSelectedTopicId(topicId)
+    setSelectedTopic(selectedTopic)
     setTopics((current) => current.filter((topic) => topic.id !== topicId))
     setTopicMessage('선택한 주제를 글 생성 단계로 보냈습니다.')
   }
@@ -394,9 +397,9 @@ export default function Home() {
     }
 
     const selectedAccount = accounts.find((account) => account.id === selectedAccountId)
-    const selectedTopic = topics.find((topic) => topic.id === selectedTopicId)
+    const activeTopic = selectedTopic || topics.find((topic) => topic.id === selectedTopicId)
 
-    if (!selectedAccount || !selectedTopic) {
+    if (!selectedAccount || !activeTopic) {
       setPostMessage('선택한 계정 또는 주제 정보를 찾지 못했습니다.')
       return
     }
@@ -411,7 +414,7 @@ export default function Home() {
       },
       body: JSON.stringify({
         account: selectedAccount,
-        topic: selectedTopic,
+        topic: activeTopic,
       }),
     })
 
@@ -431,7 +434,7 @@ export default function Home() {
         hashtags: string
       }) => ({
         account_id: selectedAccount.id,
-        topic_id: selectedTopic.id,
+        topic_id: activeTopic.id,
         hook: post.hook,
         body: post.body,
         closing_line: post.closing_line,
@@ -734,7 +737,13 @@ export default function Home() {
                 계정 선택
                 <select
                   value={selectedAccountId}
-                  onChange={(event) => setSelectedAccountId(event.target.value)}
+                  onChange={(event) => {
+                    setSelectedAccountId(event.target.value)
+                    setSelectedTopic(null)
+                    setSelectedTopicId('')
+                    setPosts([])
+                    setSelectedPostId('')
+                  }}
                   className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
                 >
                   <option value="">계정을 선택하세요</option>
@@ -880,7 +889,8 @@ export default function Home() {
               <div className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                 <p>
                   <strong>선택된 주제:</strong>{' '}
-                  {topics.find((topic) => topic.id === selectedTopicId)?.title ||
+                  {selectedTopic?.title ||
+                    topics.find((topic) => topic.id === selectedTopicId)?.title ||
                     '아직 선택되지 않음'}
                 </p>
               </div>
