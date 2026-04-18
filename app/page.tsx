@@ -495,6 +495,39 @@ export default function Home() {
     }
   }
 
+  const handleDeletePost = async (postId: string) => {
+    const targetPost = posts.find((post) => post.id === postId)
+
+    if (!targetPost) {
+      setPostMessage('삭제할 글을 찾지 못했습니다.')
+      return
+    }
+
+    const isConfirmed = window.confirm(
+      `"${targetPost.hook}" 초안을 삭제할까요?`,
+    )
+
+    if (!isConfirmed) {
+      return
+    }
+
+    const { error } = await supabase.from('posts').delete().eq('id', postId)
+
+    if (error) {
+      setPostMessage(`글 삭제 실패: ${error.message}`)
+      return
+    }
+
+    const remainingPosts = posts.filter((post) => post.id !== postId)
+    setPosts(remainingPosts)
+
+    if (selectedPostId === postId) {
+      setSelectedPostId(remainingPosts[0]?.id || '')
+    }
+
+    setPostMessage('선택한 글 초안을 삭제했습니다.')
+  }
+
   const handleSaveSchedule = async () => {
     if (!selectedPostId) {
       setScheduleMessage('먼저 예약할 글을 하나 선택해 주세요.')
@@ -970,6 +1003,13 @@ export default function Home() {
                       }`}
                     >
                       {selectedPostId === post.id ? '선택된 글' : '이 글 예약하기'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePost(post.id)}
+                      className="mt-4 ml-3 inline-flex min-h-10 items-center justify-center rounded-full bg-red-500 px-4 text-sm font-semibold text-white transition hover:bg-red-400 active:scale-[0.98]"
+                    >
+                      삭제하기
                     </button>
                   </article>
                 ))
