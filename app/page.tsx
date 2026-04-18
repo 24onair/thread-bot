@@ -117,6 +117,7 @@ export default function Home() {
         .from('topics')
         .select('id, title, description, reason, created_at')
         .eq('account_id', selectedAccountId)
+        .neq('status', 'selected')
         .order('created_at', { ascending: false })
         .limit(6)
 
@@ -293,6 +294,29 @@ export default function Home() {
     const topicList = data ?? []
     setTopics(topicList)
     setSelectedTopicId((current) => current || topicList[0]?.id || '')
+  }
+
+  const handleUseTopic = async (topicId: string) => {
+    const selectedTopic = topics.find((topic) => topic.id === topicId)
+
+    if (!selectedTopic) {
+      setTopicMessage('선택한 주제를 찾지 못했습니다.')
+      return
+    }
+
+    const { error } = await supabase
+      .from('topics')
+      .update({ status: 'selected' })
+      .eq('id', topicId)
+
+    if (error) {
+      setTopicMessage(`주제 사용 처리 실패: ${error.message}`)
+      return
+    }
+
+    setSelectedTopicId(topicId)
+    setTopics((current) => current.filter((topic) => topic.id !== topicId))
+    setTopicMessage('선택한 주제를 글 생성 단계로 보냈습니다.')
   }
 
   const handleDeleteAccount = async () => {
@@ -814,11 +838,7 @@ export default function Home() {
                 topics.map((topic) => (
                   <article
                     key={topic.id}
-                    className={`rounded-3xl border p-5 ${
-                      selectedTopicId === topic.id
-                        ? 'border-orange-300 bg-orange-50'
-                        : 'border-slate-200 bg-slate-50'
-                    }`}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
                   >
                     <p className="text-lg font-semibold text-slate-950">
                       {topic.title}
@@ -831,14 +851,10 @@ export default function Home() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => setSelectedTopicId(topic.id)}
-                      className={`mt-4 inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition ${
-                        selectedTopicId === topic.id
-                          ? 'bg-slate-950 text-white'
-                          : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
-                      }`}
+                      onClick={() => handleUseTopic(topic.id)}
+                      className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100 active:scale-[0.98]"
                     >
-                      {selectedTopicId === topic.id ? '선택된 주제' : '이 주제 선택'}
+                      사용하기
                     </button>
                   </article>
                 ))
