@@ -57,6 +57,7 @@ export default function Home() {
   const [postMessage, setPostMessage] = useState('')
   const [isGeneratingPosts, setIsGeneratingPosts] = useState(false)
   const [selectedPostId, setSelectedPostId] = useState('')
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
   const [scheduleMessage, setScheduleMessage] = useState('')
@@ -92,6 +93,7 @@ export default function Home() {
         setSelectedTopic(null)
         setPosts([])
         setSelectedPostId('')
+        setSelectedPost(null)
         setAccountLoadMessage('저장된 계정이 아직 없습니다. 먼저 계정을 저장해 주세요.')
         return
       }
@@ -158,6 +160,7 @@ export default function Home() {
         .from('posts')
         .select('id, hook, body, closing_line, hashtags, created_at')
         .eq('topic_id', selectedTopicId)
+        .eq('status', 'draft')
         .order('created_at', { ascending: false })
         .limit(6)
 
@@ -173,7 +176,7 @@ export default function Home() {
       setSelectedPostId((current) => {
         const hasCurrent = postList.some((post) => post.id === current)
         if (hasCurrent) return current
-        return postList[0]?.id ?? ''
+        return ''
       })
     }
 
@@ -374,6 +377,7 @@ export default function Home() {
       setSelectedTopicId('')
       setPosts([])
       setSelectedPostId('')
+      setSelectedPost(null)
       setAccountLoadMessage('계정이 삭제되었습니다. 남은 계정이 없습니다.')
       setTopicMessage('')
       setPostMessage('')
@@ -466,7 +470,14 @@ export default function Home() {
 
     const postList = data ?? []
     setPosts(postList)
-    setSelectedPostId((current) => current || postList[0]?.id || '')
+    setSelectedPostId('')
+    setSelectedPost(null)
+  }
+
+  const handleUsePost = (post: Post) => {
+    setSelectedPostId(post.id)
+    setSelectedPost(post)
+    setPostMessage('선택한 글을 예약 단계로 보냈습니다.')
   }
 
   const handleCopyPost = async (post: Post) => {
@@ -522,7 +533,8 @@ export default function Home() {
     setPosts(remainingPosts)
 
     if (selectedPostId === postId) {
-      setSelectedPostId(remainingPosts[0]?.id || '')
+      setSelectedPostId('')
+      setSelectedPost(null)
     }
 
     setPostMessage('선택한 글 초안을 삭제했습니다.')
@@ -576,9 +588,23 @@ export default function Home() {
       return
     }
 
+    const { error: updatePostError } = await supabase
+      .from('posts')
+      .update({ status: 'scheduled' })
+      .eq('id', selectedPostId)
+
+    if (updatePostError) {
+      setScheduleMessage(`예약은 저장됐지만 글 상태 변경 실패: ${updatePostError.message}`)
+      setIsSavingSchedule(false)
+      return
+    }
+
     setScheduleMessage('예약이 저장되었습니다.')
     setIsSavingSchedule(false)
     setScheduledPostId(selectedPostId)
+    setPosts((current) => current.filter((post) => post.id !== selectedPostId))
+    setSelectedPost(null)
+    setSelectedPostId('')
     setScheduleDate('')
     setScheduleTime('')
     window.setTimeout(() => {
@@ -776,6 +802,7 @@ export default function Home() {
                     setSelectedTopicId('')
                     setPosts([])
                     setSelectedPostId('')
+                    setSelectedPost(null)
                   }}
                   className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
                 >
@@ -960,14 +987,12 @@ export default function Home() {
                   생성하기 버튼을 눌러보세요.
                 </div>
               ) : (
-                posts.map((post) => (
+                posts
+                  .filter((post) => post.id !== selectedPostId)
+                  .map((post) => (
                   <article
                     key={post.id}
-                    className={`rounded-3xl border p-5 ${
-                      selectedPostId === post.id
-                        ? 'border-orange-300 bg-orange-50'
-                        : 'border-slate-200 bg-slate-50'
-                    }`}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
                   >
                     <p className="text-lg font-semibold text-slate-950">
                       {post.hook}
@@ -995,14 +1020,10 @@ export default function Home() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSelectedPostId(post.id)}
-                      className={`mt-4 ml-3 inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition active:scale-[0.98] ${
-                        selectedPostId === post.id
-                          ? 'bg-slate-950 text-white'
-                          : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
-                      }`}
+                      onClick={() => handleUsePost(post)}
+                      className="mt-4 ml-3 inline-flex min-h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100 active:scale-[0.98]"
                     >
-                      {selectedPostId === post.id ? '선택된 글' : '이 글 예약하기'}
+                      사용하기
                     </button>
                     <button
                       type="button"
@@ -1033,7 +1054,9 @@ export default function Home() {
               <div className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                 <p>
                   <strong>선택된 글:</strong>{' '}
-                  {posts.find((post) => post.id === selectedPostId)?.hook || '아직 선택되지 않음'}
+                  {selectedPost?.hook ||
+                    posts.find((post) => post.id === selectedPostId)?.hook ||
+                    '아직 선택되지 않음'}
                 </p>
               </div>
 
