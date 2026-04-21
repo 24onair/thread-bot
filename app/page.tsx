@@ -293,6 +293,7 @@ export default function Home() {
       .from('topics')
       .select('id, title, description, reason, created_at')
       .eq('account_id', selectedAccountId)
+      .neq('status', 'selected')
       .order('created_at', { ascending: false })
       .limit(6)
 
