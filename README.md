@@ -39,9 +39,14 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 The Moments landing page is served at `/the-moments`.
 
-The editable slide gallery in `public/the-moments/index.html` stores uploaded
-images in Supabase Storage through `/api/the-moments/gallery`, so every visitor
-sees the same curated gallery.
+The public slide gallery in `public/the-moments/index.html` loads curated
+images and the optional Google Drive download link from
+`/api/the-moments/gallery`, so every visitor sees the same content.
+
+Gallery management is separated into `/the-moments/admin.html`. The admin page
+stores uploaded images in Supabase Storage, supports up to 30 gallery items,
+lets the admin choose the 1:1 crop area before upload, and manages visibility,
+the focal image, deletion, and the Google Drive download link.
 
 Required Vercel environment variables:
 
@@ -51,5 +56,5 @@ Required Vercel environment variables:
 - `THE_MOMENTS_ADMIN_PIN`
 
 The API creates and uses a public Supabase Storage bucket named
-`the-moments-gallery`. Upload, focal image, visibility, and delete operations
-require the admin PIN.
+`the-moments-gallery`. Upload, focal image, visibility, delete, and download
+link updates require the admin PIN.

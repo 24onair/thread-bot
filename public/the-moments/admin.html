@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Moments 관리자 | 갤러리 관리</title>
+  <meta name="description" content="The Moments 랜딩페이지 갤러리와 다운로드 링크를 관리합니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="brand" href="./index.html" aria-label="The Moments 랜딩페이지로 이동">
+      <span class="brand-mark">TM</span>
+      <span>The Moments</span>
+    </a>
+    <a class="button secondary" href="./index.html#slide-gallery">랜딩 갤러리 보기</a>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-hero" aria-labelledby="admin-title">
+      <p class="eyebrow">Gallery Control Room</p>
+      <h1 id="admin-title">갤러리와 다운로드 링크를 한 곳에서 관리합니다.</h1>
+      <p>
+        방문자용 랜딩페이지는 단순하게 유지하고, 이미지는 이 페이지에서 최대 30장까지 업로드,
+        노출, 대표 포컬, 삭제를 관리합니다.
+      </p>
+    </section>
+
+    <section class="admin-toolbar" aria-label="관리자 인증 및 다운로드 링크">
+      <div class="admin-field">
+        <label for="admin-pin">관리자 PIN</label>
+        <input id="admin-pin" type="password" autocomplete="current-password" data-admin-pin />
+      </div>
+      <div class="admin-field">
+        <label for="download-url">구글드라이브 다운로드 링크</label>
+        <input id="download-url" type="url" placeholder="https://drive.google.com/..." data-download-url />
+      </div>
+      <button class="button primary" type="button" data-save-download>다운로드 링크 저장</button>
+    </section>
+
+    <section class="admin-uploader" aria-label="갤러리 이미지 업로드">
+      <div>
+        <p class="section-kicker">Upload</p>
+        <h2>사진을 고르고, 보여줄 1:1 영역을 선택하세요.</h2>
+        <p data-admin-status>갤러리 정보를 불러오는 중입니다.</p>
+      </div>
+      <label class="admin-upload-button">
+        <input type="file" accept="image/*" multiple data-admin-upload />
+        이미지 업로드
+      </label>
+    </section>
+
+    <section class="admin-gallery" aria-label="업로드 이미지 관리" data-admin-gallery></section>
+  </main>
+
+  <div class="crop-modal" data-crop-modal hidden>
+    <div class="crop-dialog" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+      <div class="crop-header">
+        <div>
+          <p class="section-kicker">Square Crop</p>
+          <h2 id="crop-title">정사각형으로 보일 영역 선택</h2>
+        </div>
+        <button class="crop-close" type="button" data-crop-cancel aria-label="크롭 취소">×</button>
+      </div>
+      <div class="crop-workspace">
+        <div class="crop-frame" data-crop-frame>
+          <img alt="" data-crop-image />
+        </div>
+        <div class="crop-controls">
+          <label>
+            이미지 설명
+            <input type="text" data-crop-alt />
+          </label>
+          <label>
+            확대
+            <input type="range" min="1" max="3" step="0.01" value="1" data-crop-zoom />
+          </label>
+          <p>이미지를 드래그해 저장할 영역을 맞춘 뒤 업로드하세요.</p>
+          <div class="crop-actions">
+            <button class="button secondary" type="button" data-crop-cancel>취소</button>
+            <button class="button primary" type="button" data-crop-save>이 영역으로 업로드</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./admin.js"></script>
+</body>
+
+</html>

@@ -10,9 +10,15 @@ type GalleryItem = {
   createdAt: string
 }
 
+type GalleryManifest = {
+  items: GalleryItem[]
+  downloadUrl: string
+}
+
 const bucketName = 'the-moments-gallery'
 const manifestPath = 'manifest/gallery.json'
 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/json']
+const maxGalleryItems = 30
 
 const defaultItems: GalleryItem[] = [
   {
@@ -135,20 +141,29 @@ async function readManifest() {
   const { data, error } = await supabase.storage.from(bucketName).download(manifestPath)
 
   if (error) {
-    return defaultItems
+    return {
+      items: defaultItems,
+      downloadUrl: '',
+    }
   }
 
   const text = await data.text()
-  const parsed = JSON.parse(text) as GalleryItem[]
+  const parsed = JSON.parse(text) as GalleryItem[] | Partial<GalleryManifest>
 
   if (!Array.isArray(parsed)) {
-    return defaultItems
+    return {
+      items: Array.isArray(parsed.items) ? parsed.items.slice(0, maxGalleryItems) : defaultItems,
+      downloadUrl: typeof parsed.downloadUrl === 'string' ? parsed.downloadUrl : '',
+    }
   }
 
-  return parsed.slice(0, 10)
+  return {
+    items: parsed.slice(0, maxGalleryItems),
+    downloadUrl: '',
+  }
 }
 
-async function writeManifest(items: GalleryItem[]) {
+async function writeManifest(manifest: GalleryManifest) {
   const supabase = getSupabaseAdmin()
 
   if (!supabase) {
@@ -157,14 +172,21 @@ async function writeManifest(items: GalleryItem[]) {
 
   await ensureBucket()
 
-  const normalizedItems = items.slice(0, 10)
+  const normalizedItems = manifest.items.slice(0, maxGalleryItems)
   const hasFocal = normalizedItems.some((item) => item.focal)
 
   if (!hasFocal && normalizedItems[0]) {
     normalizedItems[0].focal = true
   }
 
-  const body = JSON.stringify(normalizedItems, null, 2)
+  const body = JSON.stringify(
+    {
+      items: normalizedItems,
+      downloadUrl: manifest.downloadUrl,
+    },
+    null,
+    2,
+  )
   const { error } = await supabase.storage.from(bucketName).upload(manifestPath, body, {
     contentType: 'application/json',
     upsert: true,
@@ -174,7 +196,10 @@ async function writeManifest(items: GalleryItem[]) {
     throw error
   }
 
-  return normalizedItems
+  return {
+    items: normalizedItems,
+    downloadUrl: manifest.downloadUrl,
+  }
 }
 
 function itemToClient(item: GalleryItem) {
@@ -196,15 +221,17 @@ function itemToClient(item: GalleryItem) {
 
 export async function GET() {
   try {
-    const items = await readManifest()
+    const manifest = await readManifest()
 
     return NextResponse.json({
-      items: items.map(itemToClient),
+      items: manifest.items.map(itemToClient),
+      downloadUrl: manifest.downloadUrl,
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'missing_config') {
       return NextResponse.json({
         items: defaultItems.map((item) => ({ ...item, src: item.path })),
+        downloadUrl: '',
         warning:
           'Supabase Storage 설정이 없어 기본 갤러리를 표시합니다. 업로드 관리는 환경변수 설정 후 사용할 수 있습니다.',
       })
@@ -229,10 +256,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const items = await readManifest()
+    const manifest = await readManifest()
 
-    if (items.length >= 10) {
-      return NextResponse.json({ error: '최대 10장까지 업로드할 수 있습니다.' }, { status: 400 })
+    if (manifest.items.length >= maxGalleryItems) {
+      return NextResponse.json({ error: '최대 30장까지 업로드할 수 있습니다.' }, { status: 400 })
     }
 
     const formData = await request.formData()
@@ -262,21 +289,25 @@ export async function POST(request: Request) {
     }
 
     const nextItems = [
-      ...items,
+      ...manifest.items,
       {
         id,
         path: storagePath,
         alt,
         visible: true,
-        focal: items.length === 0,
+        focal: manifest.items.length === 0,
         createdAt: new Date().toISOString(),
       },
     ]
 
-    const savedItems = await writeManifest(nextItems)
+    const savedManifest = await writeManifest({
+      ...manifest,
+      items: nextItems,
+    })
 
     return NextResponse.json({
-      items: savedItems.map(itemToClient),
+      items: savedManifest.items.map(itemToClient),
+      downloadUrl: savedManifest.downloadUrl,
     })
   } catch (error) {
     return NextResponse.json(
@@ -301,15 +332,29 @@ export async function PATCH(request: Request) {
       visible?: boolean
       focal?: boolean
       alt?: string
+      downloadUrl?: string
     }
-    const items = await readManifest()
-    const targetIndex = items.findIndex((item) => item.id === body.id)
+    const manifest = await readManifest()
+
+    if (typeof body.downloadUrl === 'string' && !body.id) {
+      const savedManifest = await writeManifest({
+        ...manifest,
+        downloadUrl: body.downloadUrl.trim(),
+      })
+
+      return NextResponse.json({
+        items: savedManifest.items.map(itemToClient),
+        downloadUrl: savedManifest.downloadUrl,
+      })
+    }
+
+    const targetIndex = manifest.items.findIndex((item) => item.id === body.id)
 
     if (targetIndex === -1) {
       return NextResponse.json({ error: '갤러리 이미지를 찾지 못했습니다.' }, { status: 404 })
     }
 
-    const nextItems = items.map((item, index) => {
+    const nextItems = manifest.items.map((item, index) => {
       if (index !== targetIndex) {
         return body.focal ? { ...item, focal: false } : item
       }
@@ -322,10 +367,14 @@ export async function PATCH(request: Request) {
       }
     })
 
-    const savedItems = await writeManifest(nextItems)
+    const savedManifest = await writeManifest({
+      ...manifest,
+      items: nextItems,
+    })
 
     return NextResponse.json({
-      items: savedItems.map(itemToClient),
+      items: savedManifest.items.map(itemToClient),
+      downloadUrl: savedManifest.downloadUrl,
     })
   } catch (error) {
     return NextResponse.json(
@@ -349,8 +398,8 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    const items = await readManifest()
-    const targetItem = items.find((item) => item.id === id)
+    const manifest = await readManifest()
+    const targetItem = manifest.items.find((item) => item.id === id)
 
     if (!targetItem) {
       return NextResponse.json({ error: '갤러리 이미지를 찾지 못했습니다.' }, { status: 404 })
@@ -360,10 +409,14 @@ export async function DELETE(request: Request) {
       await supabase.storage.from(bucketName).remove([targetItem.path])
     }
 
-    const savedItems = await writeManifest(items.filter((item) => item.id !== id))
+    const savedManifest = await writeManifest({
+      ...manifest,
+      items: manifest.items.filter((item) => item.id !== id),
+    })
 
     return NextResponse.json({
-      items: savedItems.map(itemToClient),
+      items: savedManifest.items.map(itemToClient),
+      downloadUrl: savedManifest.downloadUrl,
     })
   } catch (error) {
     return NextResponse.json(

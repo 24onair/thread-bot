@@ -106,8 +106,8 @@
         <p class="section-kicker">Editable Gallery</p>
         <h2>포컬 이미지로 보여주는 1:1 슬라이드 갤러리</h2>
         <p>
-          업로드한 이미지는 1:1 정사각형으로 자동 크롭되어 브라우저에 저장됩니다.
-          최대 10장까지 관리할 수 있고, 대표 포컬 이미지를 첫 슬라이드로 노출할 수 있습니다.
+          선택된 대표 이미지를 중심으로 The Moments의 실제 제작 사례를 보여줍니다.
+          갤러리와 다운로드 링크는 별도 관리자 페이지에서 관리됩니다.
         </p>
       </div>
 
@@ -123,25 +123,14 @@
         <div class="slider-dots" data-gallery-dots aria-label="슬라이드 선택"></div>
       </div>
 
-      <details class="gallery-manager">
-        <summary>갤러리 업로드 및 노출 관리</summary>
-        <div class="manager-panel">
-          <div class="upload-box">
-            <label class="upload-label" for="gallery-admin-pin">관리자 PIN</label>
-            <input id="gallery-admin-pin" type="password" autocomplete="current-password" data-gallery-admin-pin />
-            <p>업로드, 삭제, 노출 변경은 관리자 PIN 입력 후 저장됩니다.</p>
-          </div>
-          <div class="upload-box">
-            <label class="upload-label" for="gallery-upload">이미지 업로드</label>
-            <input id="gallery-upload" type="file" accept="image/*" multiple data-gallery-upload />
-            <p data-gallery-status>최대 10장까지 업로드할 수 있습니다. 업로드 시 1:1 이미지로 저장됩니다.</p>
-          </div>
-          <div class="manager-actions">
-            <button class="button secondary" type="button" data-gallery-reset>기본 이미지로 초기화</button>
-          </div>
-          <div class="gallery-admin-list" data-gallery-admin-list aria-label="업로드 이미지 관리"></div>
+      <div class="download-panel" data-download-panel hidden>
+        <div>
+          <p class="download-label">Photo download</p>
+          <h3>액자 제작용 사진을 한 번에 전달하세요.</h3>
+          <p>관리자가 등록한 Google Drive 링크로 이동해 사진을 업로드하거나 다운로드할 수 있습니다.</p>
         </div>
-      </details>
+        <a class="button primary" href="#" target="_blank" rel="noreferrer" data-download-link>구글드라이브 열기</a>
+      </div>
     </section>
 
     <section class="process section-band">
@@ -291,7 +280,7 @@
 
   <footer class="footer">
     <p>The Moments</p>
-    <p>Custom block frame for memories, interiors, and thoughtful gifts.</p>
+    <p>Custom block frame for memories, interiors, and thoughtful gifts. <a href="./admin.html">Admin</a></p>
   </footer>
 
   <script src="./main.js"></script>
