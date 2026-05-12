@@ -23,6 +23,7 @@
     <nav>
       <a href="#craft">제작</a>
       <a href="#collection">컬렉션</a>
+      <a href="#slide-gallery">갤러리</a>
       <a href="#reviews">리뷰</a>
       <a href="#faq">FAQ</a>
       <a href="#order">주문</a>
@@ -98,6 +99,44 @@
         <figure class="tile"><img src="./assets/tmom-8.jpg" alt="패러글라이딩 사진으로 구성된 액자" /></figure>
         <figure class="tile tall"><img src="./assets/tmom-4.jpg" alt="가족과 아이 사진이 조합된 맞춤 액자" /></figure>
       </div>
+    </section>
+
+    <section class="slide-gallery section-band" id="slide-gallery">
+      <div class="section-heading">
+        <p class="section-kicker">Editable Gallery</p>
+        <h2>포컬 이미지로 보여주는 1:1 슬라이드 갤러리</h2>
+        <p>
+          업로드한 이미지는 1:1 정사각형으로 자동 크롭되어 브라우저에 저장됩니다.
+          최대 10장까지 관리할 수 있고, 대표 포컬 이미지를 첫 슬라이드로 노출할 수 있습니다.
+        </p>
+      </div>
+
+      <div class="slider-shell" aria-label="The Moments 슬라이드 갤러리">
+        <div class="slider-frame">
+          <button class="slider-arrow" type="button" data-gallery-prev aria-label="이전 이미지">‹</button>
+          <figure class="slider-stage">
+            <img data-gallery-image src="./assets/tmom-6.jpg" alt="The Moments 갤러리 이미지" />
+            <figcaption data-gallery-caption>대표 포컬 이미지</figcaption>
+          </figure>
+          <button class="slider-arrow" type="button" data-gallery-next aria-label="다음 이미지">›</button>
+        </div>
+        <div class="slider-dots" data-gallery-dots aria-label="슬라이드 선택"></div>
+      </div>
+
+      <details class="gallery-manager">
+        <summary>갤러리 업로드 및 노출 관리</summary>
+        <div class="manager-panel">
+          <div class="upload-box">
+            <label class="upload-label" for="gallery-upload">이미지 업로드</label>
+            <input id="gallery-upload" type="file" accept="image/*" multiple data-gallery-upload />
+            <p data-gallery-status>최대 10장까지 업로드할 수 있습니다. 업로드 시 1:1 이미지로 저장됩니다.</p>
+          </div>
+          <div class="manager-actions">
+            <button class="button secondary" type="button" data-gallery-reset>기본 이미지로 초기화</button>
+          </div>
+          <div class="gallery-admin-list" data-gallery-admin-list aria-label="업로드 이미지 관리"></div>
+        </div>
+      </details>
     </section>
 
     <section class="process section-band">
