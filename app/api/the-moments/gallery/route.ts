@@ -12,6 +12,7 @@ type GalleryItem = {
 
 const bucketName = 'the-moments-gallery'
 const manifestPath = 'manifest/gallery.json'
+const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/json']
 
 const defaultItems: GalleryItem[] = [
   {
@@ -101,12 +102,24 @@ async function ensureBucket() {
     const { error: createError } = await supabase.storage.createBucket(bucketName, {
       public: true,
       fileSizeLimit: 3 * 1024 * 1024,
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      allowedMimeTypes,
     })
 
     if (createError) {
       throw createError
     }
+
+    return
+  }
+
+  const { error: updateError } = await supabase.storage.updateBucket(bucketName, {
+    public: true,
+    fileSizeLimit: 3 * 1024 * 1024,
+    allowedMimeTypes,
+  })
+
+  if (updateError) {
+    throw updateError
   }
 }
 
