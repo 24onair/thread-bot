@@ -40,6 +40,16 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 The Moments landing page is served at `/the-moments`.
 
 The editable slide gallery in `public/the-moments/index.html` stores uploaded
-images in the visitor's browser local storage. It is useful for quick local
-curation and previewing, but shared production-wide gallery management would
-need a persistent backend or storage service.
+images in Supabase Storage through `/api/the-moments/gallery`, so every visitor
+sees the same curated gallery.
+
+Required Vercel environment variables:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `THE_MOMENTS_ADMIN_PIN`
+
+The API creates and uses a public Supabase Storage bucket named
+`the-moments-gallery`. Upload, focal image, visibility, and delete operations
+require the admin PIN.

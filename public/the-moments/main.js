@@ -1,6 +1,6 @@
 const filterButtons = document.querySelectorAll(".filter-button");
 const reviewCards = document.querySelectorAll(".review-card");
-const galleryStorageKey = "the-moments-slide-gallery-v1";
+const galleryApiPath = "/api/the-moments/gallery";
 const maxGalleryItems = 10;
 const defaultGalleryItems = [
   {
@@ -47,33 +47,48 @@ const galleryReset = document.querySelector("[data-gallery-reset]");
 const galleryStatus = document.querySelector("[data-gallery-status]");
 const galleryPrev = document.querySelector("[data-gallery-prev]");
 const galleryNext = document.querySelector("[data-gallery-next]");
+const galleryAdminPin = document.querySelector("[data-gallery-admin-pin]");
 
-let galleryItems = loadGalleryItems();
+let galleryItems = defaultGalleryItems;
 let galleryIndex = 0;
 
-function loadGalleryItems() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(galleryStorageKey) || "null");
-    if (Array.isArray(saved) && saved.length > 0) {
-      return saved.slice(0, maxGalleryItems);
-    }
-  } catch {
-    localStorage.removeItem(galleryStorageKey);
-  }
-
-  return defaultGalleryItems;
+function getAdminPin() {
+  return galleryAdminPin?.value?.trim() || "";
 }
 
-function saveGalleryItems() {
-  try {
-    localStorage.setItem(galleryStorageKey, JSON.stringify(galleryItems));
-    return true;
-  } catch {
-    if (galleryStatus) {
-      galleryStatus.textContent = "브라우저 저장 공간이 부족합니다. 이미지를 일부 삭제한 뒤 다시 시도해 주세요.";
-    }
-    return false;
+function setGalleryStatus(message) {
+  if (galleryStatus) {
+    galleryStatus.textContent = message;
   }
+}
+
+async function requestGallery(path = galleryApiPath, options = {}) {
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "갤러리 요청에 실패했습니다.");
+  }
+
+  return data;
+}
+
+async function loadGalleryItems() {
+  try {
+    const data = await requestGallery();
+    galleryItems = Array.isArray(data.items) && data.items.length > 0 ? data.items : defaultGalleryItems;
+    if (data.warning) {
+      setGalleryStatus(data.warning);
+    } else {
+      setGalleryStatus(`${galleryItems.length}/${maxGalleryItems}장 사용 중입니다.`);
+    }
+  } catch (error) {
+    galleryItems = defaultGalleryItems;
+    setGalleryStatus(error.message || "기본 갤러리를 표시합니다.");
+  }
+
+  galleryIndex = 0;
+  renderGallery();
 }
 
 function getVisibleGalleryItems() {
@@ -116,29 +131,25 @@ function renderGallery() {
 
   galleryAdminList.innerHTML = galleryItems
     .map(
-      (item, index) => `
+      (item) => `
         <article class="gallery-admin-item">
           <img src="${item.src}" alt="${item.alt || "업로드 이미지"}" />
           <label>
-            <input type="radio" name="gallery-focal" data-gallery-focal="${index}" ${item.focal ? "checked" : ""} />
+            <input type="radio" name="gallery-focal" data-gallery-focal="${item.id}" ${item.focal ? "checked" : ""} />
             대표 포컬
           </label>
           <label>
-            <input type="checkbox" data-gallery-visible="${index}" ${item.visible ? "checked" : ""} />
+            <input type="checkbox" data-gallery-visible="${item.id}" ${item.visible ? "checked" : ""} />
             노출
           </label>
-          <button type="button" data-gallery-remove="${index}">삭제</button>
+          <button type="button" data-gallery-remove="${item.id}">삭제</button>
         </article>
       `,
     )
     .join("");
-
-  if (galleryStatus) {
-    galleryStatus.textContent = `${galleryItems.length}/${maxGalleryItems}장 사용 중입니다. 업로드 이미지는 이 브라우저에 저장됩니다.`;
-  }
 }
 
-function cropFileToSquareDataUrl(file) {
+function cropFileToSquareBlob(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -149,14 +160,24 @@ function cropFileToSquareDataUrl(file) {
         const size = Math.min(image.width, image.height);
         const sourceX = Math.floor((image.width - size) / 2);
         const sourceY = Math.floor((image.height - size) / 2);
-        const outputSize = 760;
+        const outputSize = 900;
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
 
         canvas.width = outputSize;
         canvas.height = outputSize;
         context.drawImage(image, sourceX, sourceY, size, size, 0, 0, outputSize, outputSize);
-        resolve(canvas.toDataURL("image/jpeg", 0.76));
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("이미지 변환에 실패했습니다."));
+            }
+          },
+          "image/jpeg",
+          0.8,
+        );
       };
 
       image.onerror = reject;
@@ -188,41 +209,57 @@ galleryNext?.addEventListener("click", () => {
   renderGallery();
 });
 
-galleryAdminList?.addEventListener("change", (event) => {
+galleryAdminList?.addEventListener("change", async (event) => {
   const focalInput = event.target.closest("[data-gallery-focal]");
   const visibleInput = event.target.closest("[data-gallery-visible]");
+  const id = focalInput?.dataset.galleryFocal || visibleInput?.dataset.galleryVisible;
 
-  if (focalInput) {
-    const focalIndex = Number(focalInput.dataset.galleryFocal);
-    galleryItems = galleryItems.map((item, index) => ({ ...item, focal: index === focalIndex }));
+  if (!id) return;
+
+  try {
+    setGalleryStatus("갤러리 설정을 저장하는 중입니다...");
+    const data = await requestGallery(galleryApiPath, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-gallery-admin-pin": getAdminPin(),
+      },
+      body: JSON.stringify({
+        id,
+        focal: focalInput ? true : undefined,
+        visible: visibleInput ? visibleInput.checked : undefined,
+      }),
+    });
+
+    galleryItems = data.items;
     galleryIndex = 0;
-  }
-
-  if (visibleInput) {
-    const visibleIndex = Number(visibleInput.dataset.galleryVisible);
-    galleryItems[visibleIndex].visible = visibleInput.checked;
-  }
-
-  if (saveGalleryItems()) {
+    setGalleryStatus(`${galleryItems.length}/${maxGalleryItems}장 사용 중입니다.`);
+    renderGallery();
+  } catch (error) {
+    setGalleryStatus(error.message || "갤러리 설정을 저장하지 못했습니다.");
     renderGallery();
   }
 });
 
-galleryAdminList?.addEventListener("click", (event) => {
+galleryAdminList?.addEventListener("click", async (event) => {
   const removeButton = event.target.closest("[data-gallery-remove]");
   if (!removeButton) return;
 
-  const removeIndex = Number(removeButton.dataset.galleryRemove);
-  const wasFocal = galleryItems[removeIndex]?.focal;
-  galleryItems.splice(removeIndex, 1);
+  try {
+    setGalleryStatus("이미지를 삭제하는 중입니다...");
+    const data = await requestGallery(`${galleryApiPath}?id=${encodeURIComponent(removeButton.dataset.galleryRemove)}`, {
+      method: "DELETE",
+      headers: {
+        "x-gallery-admin-pin": getAdminPin(),
+      },
+    });
 
-  if (galleryItems.length > 0 && wasFocal) {
-    galleryItems[0].focal = true;
-  }
-
-  galleryIndex = 0;
-  if (saveGalleryItems()) {
+    galleryItems = data.items;
+    galleryIndex = 0;
+    setGalleryStatus(`${galleryItems.length}/${maxGalleryItems}장 사용 중입니다.`);
     renderGallery();
+  } catch (error) {
+    setGalleryStatus(error.message || "이미지를 삭제하지 못했습니다.");
   }
 });
 
@@ -232,39 +269,42 @@ galleryUpload?.addEventListener("change", async (event) => {
   const selectedFiles = files.slice(0, Math.max(remainingSlots, 0));
 
   if (remainingSlots <= 0) {
-    if (galleryStatus) galleryStatus.textContent = "최대 10장까지 업로드할 수 있습니다.";
+    setGalleryStatus("최대 10장까지 업로드할 수 있습니다.");
     event.target.value = "";
     return;
   }
 
-  if (galleryStatus) galleryStatus.textContent = "이미지를 1:1로 크롭해 저장하는 중입니다...";
+  try {
+    for (const file of selectedFiles) {
+      setGalleryStatus(`${file.name} 이미지를 1:1로 크롭해 업로드하는 중입니다...`);
+      const blob = await cropFileToSquareBlob(file);
+      const formData = new FormData();
+      formData.append("image", blob, file.name.replace(/\.[^.]+$/, ".jpg"));
+      formData.append("alt", file.name.replace(/\.[^.]+$/, "") || "The Moments 갤러리 이미지");
 
-  let addedCount = 0;
+      const data = await requestGallery(galleryApiPath, {
+        method: "POST",
+        headers: {
+          "x-gallery-admin-pin": getAdminPin(),
+        },
+        body: formData,
+      });
 
-  for (const file of selectedFiles) {
-    const src = await cropFileToSquareDataUrl(file);
-    galleryItems.push({
-      id: `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      src,
-      alt: file.name.replace(/\.[^.]+$/, "") || "업로드 갤러리 이미지",
-      visible: true,
-      focal: galleryItems.length === 0,
-    });
-    addedCount += 1;
+      galleryItems = data.items;
+    }
+
+    galleryIndex = 0;
+    setGalleryStatus(`${galleryItems.length}/${maxGalleryItems}장 사용 중입니다.`);
+    renderGallery();
+  } catch (error) {
+    setGalleryStatus(error.message || "이미지를 업로드하지 못했습니다.");
   }
 
-  if (!saveGalleryItems()) {
-    galleryItems.splice(galleryItems.length - addedCount, addedCount);
-  }
   event.target.value = "";
-  renderGallery();
 });
 
-galleryReset?.addEventListener("click", () => {
-  galleryItems = defaultGalleryItems;
-  galleryIndex = 0;
-  localStorage.removeItem(galleryStorageKey);
-  renderGallery();
+galleryReset?.addEventListener("click", async () => {
+  await loadGalleryItems();
 });
 
-renderGallery();
+loadGalleryItems();
